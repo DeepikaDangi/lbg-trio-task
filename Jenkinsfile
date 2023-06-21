@@ -10,13 +10,13 @@ pipeline {
         stage('cleanup') {
             steps {
                 sh '''
-                if docker logs mysql; then
-                    if docker exec mysql ls; then
-                        docker stop mysql
+                if docker logs nginx; then
+                    if docker exec nginx ls; then
+                        docker stop nginx
 		            else
 			            sleep 1
                     fi
-                    docker rm mysql
+                    docker rm nginx
 		        else
 		            sleep 1
                 fi
