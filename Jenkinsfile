@@ -1,12 +1,11 @@
 pipeline {
     agent any
-      
+
+	environment {
+		MYSQL_ROOT_PASSWORD = credentials('DB_PASSWORD')	
+	}
+	
     stages {
-        stage('checkout source code') {
-            steps {
-                git url: "https://gitlab.com/qacdevops/chaperootodo_client", branch: "master"
-            }
-        }
         stage('cleanup') {
             steps {
                 sh '''
@@ -30,21 +29,36 @@ pipeline {
 		else
 		sleep 1
 		fi
+   		if docker logs mysql; then
+                    if docker exec mysql ls; then
+                        docker stop mysql
+		            else
+			            sleep 1
+                    fi
+		docker rm mysql
+		else
+		sleep 1
+		fi
                '''
             }
         }
         stage('Build') {
             steps {
-                sh 'docker build -t trio-db:v1 .'
+                sh '''
+		cd flask-app
+		docker build -t trio-app:v1 .
+  		cd ../db
+   		docker build -t trio-db:v1 .
+   		'''
             }
         }
         stage('run') {
             steps {
                 sh '''
-               docker network inspect trio-net && sleep 1 || docker network create trio-net
-                docker run -d --network trio-net -e MYSQL_ROOT_PASSWORD=password123 --name mysql trio-db:v1
-                docker run -d -p 80:5000 --network trio-net -e MYSQL_ROOT_PASSWORD=password123 --name flask-app trio-task:v2
-
+                docker network inspect trio-net && sleep 1 || docker network create trio-net
+                docker run -d --network trio-net --name mysql -e MYSQL_ROOT_PASSWORD=${password123} trio-db:v1 
+                docker run -d --network trio-net --name flask-app -e MYSQL_ROOT_PASSWORD=${password123} trio-app:v1
+		docker run -d -p 80:80 --network trio-net --mount type=bind,source=$(pwd)/nginx/nginx.conf,target=/etc/nginx/nginx.conf --name nginx nginx:alpine
                 '''
             }
         }
