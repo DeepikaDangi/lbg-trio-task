@@ -1,0 +1,31 @@
+version: "3.8"
+services:
+  mysql:
+    image: trio-db:v1
+    build: ./db
+    networks:
+      - trio-net
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+  flask-app:
+    image: trio-app:v1
+    build: ./flask-app
+    networks:
+      - trio-net
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    depends_on:
+      - mysql
+  nginx:
+    image: nginx:alpine
+    networks:
+      - trio-net
+    ports:
+      - target: 80
+        published: 80
+    volumes:
+      - type: bind
+        source: ./nginx/nginx.conf
+        target: /etc/nginx/nginx.conf
+networks:
+  trio-net:
